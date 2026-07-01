@@ -1,0 +1,5 @@
+names:
+  0: cat
+  1: dog
+train: images/train
+val: images/val

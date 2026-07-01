@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <name>demo</name>
+    </task>
+  </meta>
+  <image id="0" name="img1.jpg" width="100" height="100">
+    <box label="cat" xtl="10.00" ytl="10.00" xbr="60.00" ybr="60.00" occluded="0">
+      <attribute name="color">black</attribute>
+    </box>
+  </image>
+</annotations>

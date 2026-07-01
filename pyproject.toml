@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cvat-pack"
+version = "0.1.0"
+description = "Pack local images and annotations into CVAT-compatible upload zip archives"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "CVAT Upload Annotation Maker contributors" }]
+
+# PyYAML: used to parse Ultralytics YOLO `data.yaml` files (class names, split
+# paths). It is the de-facto standard for YAML in Python and much lighter
+# than pulling in a full ML framework just to read a config file.
+dependencies = [
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+# Pillow is optional. It is only used, when installed, to read actual image
+# pixel dimensions for stricter checks (e.g. mask/image size matching in
+# segmentation formats). All core validators fall back to filename/existence
+# checks when Pillow is not installed.
+images = ["Pillow>=10.0"]
+dev = ["pytest>=7.4", "pytest-cov>=4.1"]
+
+[project.scripts]
+cvat-pack = "cvat_packer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
