@@ -66,6 +66,15 @@ def test_yolo_missing_classes_file_is_error(tmp_path):
     assert any("class names" in e for e in report.errors)
 
 
+def test_yolo_missing_labels_dir_is_error(tmp_path):
+    dataset = _copy_fixture(tmp_path)
+    shutil.rmtree(dataset / "obj_train_data")
+    config = PackConfig(format="yolo", output=tmp_path / "out.zip", dataset=dataset)
+    report = YoloAdapter().validate(config)
+    assert report.status == Status.FAILED
+    assert any("label .txt files" in e for e in report.errors)
+
+
 def test_yolo_build_package(tmp_path):
     dataset = _copy_fixture(tmp_path)
     output = tmp_path / "out.zip"

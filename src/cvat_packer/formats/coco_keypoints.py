@@ -45,11 +45,50 @@ class CocoKeypointsAdapter(CocoAdapter):
                 "requires per-instance keypoints (flat x, y, visibility triples)."
             )
 
+        category_num_keypoints: dict[object, int] = {}
         for cat in categories:
             if "keypoints" not in cat:
                 report.add_warning(
                     f"[coco-keypoints] Category '{cat.get('name')}' has no 'keypoints' name "
                     "list (recommended so CVAT can label each skeleton point)"
                 )
+            else:
+                category_num_keypoints[cat.get("id")] = len(cat["keypoints"])
+
+        for ann in annotations:
+            if "keypoints" not in ann:
+                continue
+            ann_id = ann.get("id")
+            keypoints = ann["keypoints"]
+
+            if ann.get("bbox") is None:
+                report.add_error(f"[coco-keypoints] Annotation {ann_id} is missing required 'bbox'")
+
+            num_keypoints = ann.get("num_keypoints")
+            if num_keypoints is None:
+                report.add_error(f"[coco-keypoints] Annotation {ann_id} is missing required 'num_keypoints'")
+            elif len(keypoints) != num_keypoints * 3:
+                report.add_error(
+                    f"[coco-keypoints] Annotation {ann_id} 'keypoints' length "
+                    f"({len(keypoints)}) must equal num_keypoints * 3 ({num_keypoints} * 3 = "
+                    f"{num_keypoints * 3})"
+                )
+
+            category_kpt_count = category_num_keypoints.get(ann.get("category_id"))
+            if category_kpt_count is not None and len(keypoints) != category_kpt_count * 3:
+                report.add_error(
+                    f"[coco-keypoints] Annotation {ann_id} 'keypoints' length ({len(keypoints)}) "
+                    f"does not match its category's keypoint name list length "
+                    f"({category_kpt_count} points = {category_kpt_count * 3} values)"
+                )
+
+            if len(keypoints) % 3 == 0:
+                visibilities = keypoints[2::3]
+                bad = [v for v in visibilities if v not in (0, 1, 2)]
+                if bad:
+                    report.add_error(
+                        f"[coco-keypoints] Annotation {ann_id} has invalid visibility value(s) "
+                        f"{bad} (each keypoint's visibility must be 0, 1, or 2)"
+                    )
 
         return report

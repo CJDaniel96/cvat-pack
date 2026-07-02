@@ -17,9 +17,11 @@ def to_posix(path: str | Path) -> str:
 
 
 def is_safe_relative_path(path: str) -> bool:
-    """Reject absolute paths, Windows drive letters, and '..' traversal."""
+    """Reject absolute paths, Windows drive letters, '..' traversal, and
+    empty/current-dir paths (an empty or '.' arcname is never a valid file
+    entry to write into the archive)."""
     posix = to_posix(path)
-    if not posix or posix.startswith("/"):
+    if not posix or posix == "." or posix.startswith("/"):
         return False
     parts = posix.split("/")
     first = parts[0]
@@ -32,3 +34,17 @@ def normalize_arcname(root: Path, file: Path) -> str:
     """Compute the POSIX-style archive name of `file` relative to `root`."""
     rel = file.relative_to(root)
     return to_posix(rel)
+
+
+def basename(path_field: str) -> str:
+    """Extract the final path component from an annotation-file path string,
+    regardless of whether it uses '/' or '\\\\' separators.
+
+    Annotation JSON/XML `file_name`/`name` fields are written by whatever OS
+    produced the dataset, so a Windows-authored COCO export may contain
+    `images\\img1.jpg`. `Path(...).name` alone only splits on the *host*
+    OS's separator, so on macOS/Linux it would treat the whole Windows-style
+    string as a single filename. Normalize to POSIX first so basename
+    extraction is correct on every platform regardless of the file's origin.
+    """
+    return PurePosixPath(path_field.replace("\\", "/")).name

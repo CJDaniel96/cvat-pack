@@ -39,6 +39,7 @@ from cvat_packer.core.filesystem import ensure_dir, make_staging_dir, safe_copy
 from cvat_packer.core.models import PackageResult, ValidationReport
 from cvat_packer.core.registry import register
 from cvat_packer.formats.base import FormatAdapter
+from cvat_packer.utils.path_normalizer import basename
 from cvat_packer.validators.common import find_images
 
 SHAPE_TAGS = ("box", "polygon", "polyline", "points", "cuboid", "ellipse", "mask", "skeleton", "tag")
@@ -126,7 +127,7 @@ class CvatImageAdapter(FormatAdapter):
                 report.add_error("[cvat-image] <image> element missing 'name' attribute")
                 continue
 
-            base_name = Path(name).name
+            base_name = basename(name)
             if images_dir is not None and base_name not in available_images:
                 report.missing_images.append(name)
                 report.add_warning(f"[cvat-image] Referenced image not found on disk: {name}")

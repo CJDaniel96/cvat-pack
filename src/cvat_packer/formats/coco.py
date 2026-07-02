@@ -26,6 +26,7 @@ from cvat_packer.core.filesystem import ensure_dir, make_staging_dir, safe_copy
 from cvat_packer.core.models import PackageResult, Status, ValidationReport
 from cvat_packer.core.registry import register
 from cvat_packer.formats.base import FormatAdapter
+from cvat_packer.utils.path_normalizer import basename
 from cvat_packer.validators.common import find_images
 
 
@@ -135,7 +136,7 @@ class CocoAdapter(FormatAdapter):
             file_name = img.get("file_name")
             if not file_name:
                 continue
-            base_name = Path(file_name).name
+            base_name = basename(file_name)
             if images_root is not None and base_name not in available_images:
                 report.missing_images.append(file_name)
                 report.add_warning(f"[coco] Referenced image not found on disk: {file_name}")
@@ -212,7 +213,7 @@ class CocoAdapter(FormatAdapter):
                 file_name = img.get("file_name")
                 if not file_name:
                     continue
-                base_name = Path(file_name).name
+                base_name = basename(file_name)
                 src = available_images.get(base_name)
                 if src is not None:
                     safe_copy(src, images_dir / base_name)

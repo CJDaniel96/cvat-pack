@@ -28,7 +28,7 @@ from cvat_packer.core.filesystem import ensure_dir, make_staging_dir, safe_copy
 from cvat_packer.core.models import PackageResult, ValidationReport
 from cvat_packer.core.registry import register
 from cvat_packer.formats.base import FormatAdapter
-from cvat_packer.validators.common import find_images
+from cvat_packer.validators.common import find_images, unmatched_stems
 
 
 def _images_dir(config: PackConfig) -> Path | None:
@@ -150,8 +150,8 @@ class PascalVocAdapter(FormatAdapter):
         report.annotations_count = object_count
 
         xml_stems = {f.stem for f in xml_files}
-        image_stems = {Path(n).stem for n in available_images}
-        for stem in sorted(image_stems - xml_stems):
+        images_without_annotation, _ = unmatched_stems(available_images, xml_stems)
+        for stem in sorted(images_without_annotation):
             report.add_warning(f"[pascal-voc] Image has no matching annotation XML: {stem}")
 
         return report

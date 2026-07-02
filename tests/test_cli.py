@@ -24,6 +24,16 @@ def test_cli_list_formats(capsys):
     assert "pascal-voc" in out
 
 
+def test_cli_help(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--help"])
+    assert exc_info.value.code == 0
+    out = capsys.readouterr().out
+    assert "--format" in out
+    assert "--dry-run" in out
+    assert "--list-formats" in out
+
+
 def test_cli_happy_path(tmp_path, capsys):
     dataset = _copy_fixture(tmp_path)
     output = tmp_path / "out.zip"

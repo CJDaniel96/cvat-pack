@@ -64,6 +64,16 @@ def test_voc_missing_annotations_dir_is_error(tmp_path):
     assert any("Annotations" in e for e in report.errors)
 
 
+def test_voc_missing_jpegimages_dir_is_error(tmp_path):
+    dataset = _copy_fixture(tmp_path)
+    shutil.rmtree(dataset / "JPEGImages")
+
+    config = PackConfig(format="pascal-voc", output=tmp_path / "out.zip", dataset=dataset)
+    report = PascalVocAdapter().validate(config)
+    assert report.status == Status.FAILED
+    assert any("JPEGImages" in e for e in report.errors)
+
+
 def test_voc_build_package(tmp_path):
     dataset = _copy_fixture(tmp_path)
     output = tmp_path / "out.zip"

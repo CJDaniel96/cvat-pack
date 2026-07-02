@@ -1,0 +1,5 @@
+names:
+  0: person
+train: images/train
+val: images/val
+kpt_shape: [3, 3]

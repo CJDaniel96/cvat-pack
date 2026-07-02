@@ -143,7 +143,11 @@ Checked: JSON parses; `images`/`annotations`/`categories` present; every
 flagged as an **orphan annotation**); every `file_name` exists on disk (else
 flagged as a **missing image**); `bbox` is `[x, y, w, h]` with positive
 w/h; `segmentation` is a valid polygon list or RLE dict; `keypoints` length
-is a multiple of 3.
+is a multiple of 3. For `coco-keypoints` specifically: every annotation with
+a `keypoints` field must also have `bbox` and `num_keypoints`; `len(keypoints)`
+must equal `num_keypoints * 3` (and match the category's `keypoints` name
+list length, if declared); each keypoint's visibility value (every 3rd
+entry) must be `0`, `1`, or `2`.
 
 ### YOLO 1.0 (`yolo`)
 
@@ -164,9 +168,17 @@ is a multiple of 3.
   labels/{train,val,test}/*.txt
 ```
 
-Label line field count depends on the task: Detection = 5 fields;
-Segmentation = class + (x,y) polygon pairs (variable length); Pose = 5 +
-groups of 2/3 per keypoint; OBB = 9 fields (class + 4 corner points).
+Label line field count depends on the task: Detection = 5 fields
+(class + normalized bbox); Segmentation = class + at least 3 (x,y) polygon
+point pairs (variable length, must come in pairs); OBB = 9 fields (class +
+4 corner points, normalized).
+
+Pose requires `data.yaml` to declare `kpt_shape: [n_keypoints, dims]`
+(`dims` is `2` for `(x,y)` or `3` for `(x,y,visibility)`); each label line
+must then have exactly `5 + n_keypoints * dims` fields. Keypoint `(x,y)`
+must be normalized `[0,1]`; if `dims == 3`, each keypoint's visibility value
+must be `0`, `1`, or `2` (visibility is *not* subject to the `[0,1]`
+normalization check that bbox/coordinate fields get).
 
 ### Ultralytics YOLO Classification (`ultralytics-yolo-classification`)
 
@@ -176,6 +188,11 @@ groups of 2/3 per keypoint; OBB = 9 fields (class + 4 corner points).
   val/<class_name>/*.jpg
   test/<class_name>/*.jpg     # optional
 ```
+
+Checked: at least one split (`train`/`val`/`test`) exists; each split has at
+least one class subfolder; each class subfolder is warned about if it has no
+images, or if it contains files with an unrecognized image extension (those
+files are ignored when packaging).
 
 ### PASCAL VOC 1.0 (`pascal-voc`)
 
@@ -232,6 +249,9 @@ uv run cvat-pack --format cvat-image --dataset ./cvat_task --output ./output/cva
 | `[yolo] ... coordinates must be normalized in [0,1]` | YOLO/Ultralytics coordinates must be fractions of image size, not pixels |
 | `[pascal-voc] ... missing <bndbox>` | Every `<object>` needs a `<bndbox>` (or a `<polygon>` for segmentation) |
 | `[cvat-image] Could not find annotations.xml` | Point `--annotations` at the XML file or its containing folder |
+| `[ultralytics-yolo-pose] data.yaml must define 'kpt_shape: ...'` | Add `kpt_shape: [n_keypoints, dims]` to `data.yaml` (`dims` is 2 or 3) |
+| `[ultralytics-yolo-pose] ... visibility must be 0, 1, or 2` | Each keypoint's 3rd value (when `dims == 3`) is a visibility flag, not a coordinate |
+| `[coco-keypoints] ... 'keypoints' length ... must equal num_keypoints * 3` | Fix `num_keypoints` or the `keypoints` array so `len(keypoints) == num_keypoints * 3` |
 | `Validation did not pass; no zip was produced` | Fix the reported errors, or re-run with `--force` to package anyway |
 | `Unknown format 'X'. Available formats: ...` | Run `cvat-pack --list-formats` for valid names/aliases |
 
@@ -264,13 +284,20 @@ uv run pytest tests/test_coco.py -v # run one module
 uv run pytest --cov=cvat_packer     # with coverage
 ```
 
-45 tests currently cover: CLI argument handling (`--dry-run`,
+131 tests currently cover: CLI argument handling (`--help`, `--dry-run`,
 `--validate-only`, `--strict`, `--copy-images`, `--manifest`, `--force`,
-error exit codes), the format registry, COCO JSON validation (schema,
-orphan annotations, missing images, malformed bbox/segmentation), YOLO label
-validation (field count, class range, normalized coordinates, orphan
-labels), Pascal VOC XML validation, and zip structure (no junk files, POSIX
-paths, expected entries).
+error exit codes), the format registry (alias mapping, case-insensitivity,
+unknown-format errors), `PackConfig`/`ValidationReport` construction and
+serialization, path-safety helpers (absolute-path/traversal rejection,
+cross-platform basename extraction), COCO JSON validation (schema, orphan
+annotations, missing images, malformed bbox/segmentation), COCO Keypoints
+(`num_keypoints`/visibility/bbox requirements), YOLO label validation (field
+count, class range, normalized coordinates, orphan labels, missing labels
+dir), every Ultralytics YOLO task (Detection/Segmentation/Pose/OBB/
+Classification — including a regression test for keypoint `visibility == 2`),
+Pascal VOC XML validation (including missing `JPEGImages`), CVAT for images
+XML validation (malformed XML, missing `label` attributes), and zip
+structure (no junk files, POSIX paths, expected entries).
 
 ## Limitations & TODO
 

@@ -1,0 +1,5 @@
+names:
+  0: ship
+  1: plane
+train: images/train
+val: images/val

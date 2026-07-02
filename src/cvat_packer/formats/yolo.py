@@ -27,7 +27,7 @@ from cvat_packer.core.filesystem import ensure_dir, make_staging_dir, safe_copy
 from cvat_packer.core.models import PackageResult, ValidationReport
 from cvat_packer.core.registry import register
 from cvat_packer.formats.base import FormatAdapter
-from cvat_packer.validators.common import find_images
+from cvat_packer.validators.common import find_images, unmatched_stems
 
 NON_LABEL_FILES = {"train.txt", "val.txt", "test.txt"}
 
@@ -128,12 +128,12 @@ class YoloAdapter(FormatAdapter):
             report.add_error(f"[yolo] No label .txt files found under {labels_root}")
             return report
 
-        image_stems = {Path(name).stem for name in available_images}
         label_stems = {f.stem for f in label_files}
+        images_without_label, labels_without_image = unmatched_stems(available_images, label_stems)
 
         annotation_count = 0
         for label_file in label_files:
-            if label_file.stem not in image_stems:
+            if label_file.stem in labels_without_image:
                 report.orphan_annotations.append(label_file.name)
                 report.add_warning(f"[yolo] Label file has no matching image: {label_file.name}")
 
@@ -180,7 +180,7 @@ class YoloAdapter(FormatAdapter):
 
         report.annotations_count = annotation_count
 
-        for stem in sorted(image_stems - label_stems):
+        for stem in sorted(images_without_label):
             report.add_warning(f"[yolo] Image has no label file (treated as background): {stem}")
 
         return report
